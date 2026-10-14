@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="sv" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#17324d">
+<meta name="description" content="Enkel däckförvaring och register">
+<link rel="manifest" href="./manifest.json">
+<title>Däcklager</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#172536;background:#f3f6f8;--blue:#17324d;--accent:#1769aa;--line:#d8e1e8}
+*{box-sizing:border-box}body{margin:0}header{background:var(--blue);color:white;padding:17px 15px 14px}header h1{margin:0;font-size:1.4rem}header p{margin:4px 0 0;color:#d9e6ef;font-size:.9rem}
+main{max-width:760px;margin:auto;padding:12px;display:grid;gap:12px}.panel{background:#fff;border:1px solid var(--line);border-radius:15px;padding:14px;box-shadow:0 2px 8px #17324d08}
+h2{font-size:1.05rem;margin:0 0 10px}.top-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+button,.pick{font:inherit;font-weight:650;border:0;border-radius:10px;padding:12px 13px;display:inline-flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;background:var(--accent);color:#fff;min-height:44px}
+button.secondary,.pick.secondary{background:#e6edf2;color:#183149}button.danger{background:#b42318}.hidden{display:none!important}
+.searchline{display:flex;gap:8px}input,textarea{font:inherit;width:100%;border:1px solid #bfccd6;border-radius:10px;padding:11px;background:#fff;color:#172536;min-width:0}textarea{min-height:68px;resize:vertical}.searchline input{flex:1}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field label{display:block;font-size:.83rem;font-weight:650;margin-bottom:5px}.full{grid-column:1/-1}.form-actions,.tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+.summary{display:flex;gap:8px;flex-wrap:wrap;font-size:.85rem;color:#d9e6ef;margin-top:10px}.summary span{background:#ffffff16;border:1px solid #ffffff24;padding:5px 8px;border-radius:8px}
+.record{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px}.record-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.record h3{font-size:.98rem;margin:0 0 4px}.record p{font-size:.9rem;margin:5px 0;overflow-wrap:anywhere}.pill{white-space:nowrap;background:#e4eff8;color:#174c73;padding:4px 7px;border-radius:7px;font-size:.8rem}
+.note{font-size:.82rem;color:#5b6d7b;line-height:1.55;margin:7px 0}.status{font-size:.85rem;line-height:1.5;padding:10px;border-radius:9px;background:#eef5fb;color:#204f73;margin-top:10px;overflow-wrap:anywhere}.status.good{background:#eaf7ee;color:#21643a}.status.error{background:#fff0ef;color:#982a22}
+.empty{padding:20px 6px;text-align:center;color:#647786}.fileinput{display:none}.subheading{font-size:.9rem;font-weight:700;margin:10px 0 6px}
+@media(max-width:480px){.fields{grid-template-columns:1fr}.full{grid-column:auto}.panel{padding:12px}.searchline{flex-direction:column}.top-actions{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Däcklager</h1>
+  <p>Snabb registrering, sökning och redigering</p>
+  <div class="summary"><span><b id="recordCount">0</b> poster</span><span><b id="tireCount">0</b> däck</span><span>Lokalt sparat</span></div>
+</header>
+<main>
+  <section class="panel" id="quickPanel">
+    <h2>Snabb åtkomst</h2>
+    <div class="top-actions">
+      <button type="button" id="newBtn">＋ Ny registrering</button>
+      <button type="button" class="secondary" id="scanBtn">▧ Läs handskriven etikett</button>
+    </div>
+    <div class="note">Tips på فارسی: ثبت جدید و خواندن برچسب از همین صفحه در دسترس است؛ جست‌وجو و ویرایش هم پایین همین صفحه قرار دارد.</div>
+  </section>
+
+  <section class="panel" id="formPanel">
+    <h2 id="formTitle">Ny registrering</h2>
+    <form id="recordForm">
+      <input type="hidden" id="recordId">
+      <div class="fields">
+        <div class="field"><label for="vehicle">Bilmärke / modell *</label><input id="vehicle" required autocomplete="off" placeholder="t.ex. TESLA"></div>
+        <div class="field"><label for="plate">Registreringsnummer *</label><input id="plate" required autocomplete="off" placeholder="t.ex. SGB 703"></div>
+        <div class="field"><label for="phone">Telefonnummer</label><input id="phone" inputmode="tel" autocomplete="tel" placeholder="Telefonnummer"></div>
+        <div class="field"><label for="owner">Ägare (valfritt)</label><input id="owner" autocomplete="name" placeholder="Namn"></div>
+        <div class="field"><label for="location">Förvaringsplats *</label><input id="location" required placeholder="t.ex. Hylla B, plats 12"></div>
+        <div class="field"><label for="quantity">Antal däck</label><input id="quantity" type="number" min="0" max="100" value="4"></div>
+        <div class="field full"><label for="notes">Anteckningar</label><textarea id="notes" placeholder="Storlek, skick eller annan information"></textarea></div>
+      </div>
+      <div class="form-actions"><button type="submit">Spara post</button><button type="button" class="secondary" id="cancelEdit">Rensa formulär</button></div>
+    </form>
+  </section>
+
+  <section class="panel" id="ocrPanel">
+    <h2>Läs handskriven etikett</h2>
+    <p class="note">Försöker läsa handskriven engelsk text: bilmärke, registreringsnummer och telefonnummer. Bilden skickas till en extern OCR-tjänst endast för bearbetning och sparas inte i däckregistret. Kontrollera alltid resultatet innan du sparar.</p>
+    <div class="tools">
+      <label class="pick" for="cameraInput">Ta foto</label><input class="fileinput" id="cameraInput" type="file" accept="image/*" capture="environment">
+      <label class="pick secondary" for="multiInput">Välj flera bilder</label><input class="fileinput" id="multiInput" type="file" accept="image/*" multiple>
+    </div>
+    <div id="ocrStatus" class="status">OCR behöver en serverfunktion och en konfigurerad API-nyckel. Se installationsanvisningen (README).</div>
+    <div id="ocrResults"></div>
+  </section>
+
+  <section class="panel" id="listPanel">
+    <h2>Sök och redigera</h2>
+    <div class="searchline"><input id="searchInput" type="search" placeholder="Sök bil, registreringsnummer, telefon, ägare eller plats"><button type="button" class="secondary" id="clearSearch">Rensa</button></div>
+    <div id="recordsList"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Säkerhetskopia</h2>
+    <p class="note">Dina poster sparas i den här webbläsaren på den här enheten. Exportera regelbundet en säkerhetskopia. Bilder från OCR sparas inte i registret.</p>
+    <div class="tools"><button type="button" id="exportBtn">Exportera JSON</button><label class="pick secondary" for="importInput">Importera JSON</label><input class="fileinput" id="importInput" type="file" accept=".json,application/json"><button type="button" class="secondary" id="csvBtn">Exportera CSV</button></div>
+  </section>
+</main>
+<script>
+(() => {
+ const $=id=>document.getElementById(id), dbName='dacklager-db-v1';
+ let db=null, busy=false;
+ const keys=['vehicle','plate','phone','owner','location','quantity','notes'];
+ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const openDB=()=>new Promise((res,rej)=>{const q=indexedDB.open(dbName,1);q.onupgradeneeded=()=>q.result.createObjectStore('records',{keyPath:'id',autoIncrement:true});q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)});
+ const all=()=>new Promise((res,rej)=>{const q=db.transaction('records','readonly').objectStore('records').getAll();q.onsuccess=()=>res(q.result.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)));q.onerror=()=>rej(q.error)});
+ const save=r=>new Promise((res,rej)=>{const q=db.transaction('records','readwrite').objectStore('records')[r.id?'put':'add'](r);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)});
+ const remove=id=>new Promise((res,rej)=>{const tx=db.transaction('records','readwrite');tx.objectStore('records').delete(Number(id));tx.oncomplete=res;tx.onerror=()=>rej(tx.error)});
+ const num=n=>new Intl.NumberFormat('sv-SE').format(n);
+ function readForm(){return {...($('recordId').value?{id:Number($('recordId').value)}:{}),vehicle:$('vehicle').value.trim(),plate:$('plate').value.trim(),phone:$('phone').value.trim(),owner:$('owner').value.trim(),location:$('location').value.trim(),quantity:Math.max(0,Number($('quantity').value)||0),notes:$('notes').value.trim(),updatedAt:Date.now()}}
+ function clearForm(){ $('recordForm').reset();$('recordId').value='';$('quantity').value='4';$('formTitle').textContent='Ny registrering';}
+ async function render(){
+  const rs=await all(), q=$('searchInput').value.trim().toLocaleLowerCase('sv');
+  $('recordCount').textContent=num(rs.length);$('tireCount').textContent=num(rs.reduce((a,r)=>a+(Number(r.quantity)||0),0));
+  const found=rs.filter(r=>[r.vehicle,r.plate,r.phone,r.owner,r.location,r.notes].some(v=>String(v||'').toLocaleLowerCase('sv').includes(q)));
+  if(!found.length){$('recordsList').innerHTML='<div class="empty">'+(q?'Inga träffar.':'Inga poster ännu. Lägg till din första registrering ovan.')+'</div>';return}
+  $('recordsList').innerHTML=found.map(r=>`<article class="record"><div class="record-head"><div><h3>${esc(r.vehicle)} — ${esc(r.plate)}</h3><p>⌖ ${esc(r.location)}</p></div><span class="pill">${num(Number(r.quantity)||0)} däck</span></div>${r.phone?`<p>☎ ${esc(r.phone)}</p>`:''}${r.owner?`<p>Ägare: ${esc(r.owner)}</p>`:''}${r.notes?`<p>Anteckning: ${esc(r.notes)}</p>`:''}<div class="tools"><button type="button" class="secondary" data-edit="${r.id}">Redigera</button><button type="button" class="danger" data-delete="${r.id}">Ta bort</button></div></article>`).join('');
+ }
+ $('recordForm').addEventListener('submit',async e=>{e.preventDefault();try{await save(readForm());clearForm();await render();$('formTitle').textContent='Post sparad';setTimeout(()=>{$('formTitle').textContent='Ny registrering'},1500)}catch(err){alert('Kunde inte spara: '+err.message)}});
+ $('cancelEdit').onclick=clearForm;
+ $('newBtn').onclick=()=>{$('formPanel').scrollIntoView({behavior:'smooth'});$('vehicle').focus()};
+ $('scanBtn').onclick=()=>{$('ocrPanel').scrollIntoView({behavior:'smooth'});$('cameraInput').click()};
+ $('searchInput').addEventListener('input',render);$('clearSearch').onclick=()=>{$('searchInput').value='';render()};
+ $('recordsList').addEventListener('click',async e=>{
+  const ed=e.target.closest('[data-edit]'),del=e.target.closest('[data-delete]');
+  if(ed){const r=(await all()).find(x=>x.id===Number(ed.dataset.edit));if(!r)return;$('recordId').value=r.id;keys.forEach(k=>$(k).value=r[k]??(k==='quantity'?4:''));$('formTitle').textContent='Redigera post';$('formPanel').scrollIntoView({behavior:'smooth'});}
+  if(del&&confirm('Ta bort den här posten?')){await remove(del.dataset.delete);render()}
+ });
+ function download(name,content,type){const u=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1200)}
+ $('exportBtn').onclick=async()=>download('dacklager-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({version:1,exportedAt:new Date().toISOString(),records:await all()},null,2),'application/json');
+ $('csvBtn').onclick=async()=>{const rs=await all(),cols=['id',...keys,'updatedAt'],cell=v=>'"'+String(v??'').replace(/"/g,'""')+'"';download('dacklager.csv','\ufeff'+[cols.map(cell).join(';'),...rs.map(r=>cols.map(k=>cell(r[k])).join(';'))].join('\r\n'),'text/csv;charset=utf-8')};
+ $('importInput').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text()),rs=Array.isArray(d)?d:d.records;if(!Array.isArray(rs))throw Error('Ogiltig JSON-fil');if(!confirm('Importera '+rs.length+' poster? Befintliga ID:n kan ersättas.'))return;for(const x of rs){const r={vehicle:String(x.vehicle||''),plate:String(x.plate||''),phone:String(x.phone||''),owner:String(x.owner||''),location:String(x.location||''),quantity:Number(x.quantity)||0,notes:String(x.notes||''),updatedAt:Number(x.updatedAt)||Date.now()};if(x.id)r.id=Number(x.id);if(r.vehicle&&r.plate&&r.location)await save(r)}await render();alert('Import klar.')}catch(err){alert('Importfel: '+err.message)}finally{e.target.value=''}});
+ async function processFiles(files){
+  const list=Array.from(files||[]).filter(f=>f.type.startsWith('image/'));if(!list.length||busy)return;busy=true;$('ocrResults').innerHTML='';
+  try{
+   for(let i=0;i<list.length;i++){
+    $('ocrStatus').className='status';$('ocrStatus').textContent=`Bearbetar bild ${i+1} av ${list.length}…`;
+    // Read only in memory; image data is sent to the same-origin server function and never written to IndexedDB.
+    const dataUrl=await new Promise((res,rej)=>{const rd=new FileReader();rd.onload=()=>res(rd.result);rd.onerror=rej;rd.readAsDataURL(list[i])});
+    const response=await fetch('./api/ocr',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:dataUrl})});
+    const payload=await response.json();if(!response.ok)throw Error(payload.error||'OCR-tjänsten svarade med fel');
+    const text=payload.text||'';const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+    const phone=(text.match(/(?:\+?\d[\d\s().-]{6,}\d)/)||[])[0]||'';
+    const plate=lines.find(s=>/\d/.test(s)&&/[A-Za-z]/.test(s)&&s.length<20)||'';
+    const vehicle=lines.find(s=>/[A-Za-z]{3,}/.test(s)&&!(/\d/.test(s)&&s.length<20))||'';
+    const card=document.createElement('div');card.className='record';
+    card.innerHTML=`<h3>Resultat — bild ${i+1}</h3><p class="note">Text som OCR läste (kontrollera noggrant):</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(text||'Ingen text kunde läsas.')}</pre><div class="tools"><button type="button" data-fill data-v="${esc(vehicle)}" data-p="${esc(plate)}" data-t="${esc(phone.trim())}">Använd gissningar i formuläret</button></div>`;
+    $('ocrResults').appendChild(card);
+   }
+   $('ocrStatus').className='status good';$('ocrStatus').textContent='Klart. Kontrollera och korrigera texten innan du sparar. Bilderna har inte sparats i registret.';
+  }catch(err){$('ocrStatus').className='status error';$('ocrStatus').textContent='OCR-fel: '+err.message+' Kontrollera anslutning och API-konfiguration.'}
+  finally{busy=false;$('cameraInput').value='';$('multiInput').value=''}
+ }
+ ['cameraInput','multiInput'].forEach(id=>$(id).addEventListener('change',e=>processFiles(e.target.files)));
+ $('ocrResults').addEventListener('click',e=>{const b=e.target.closest('[data-fill]');if(!b)return;$('vehicle').value=b.dataset.v;$('plate').value=b.dataset.p;$('phone').value=b.dataset.t;$('formPanel').scrollIntoView({behavior:'smooth'});$('vehicle').focus()});
+ (async()=>{try{db=await openDB();await render()}catch(e){$('recordsList').textContent='Databasen kunde inte öppnas: '+e.message}if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{})})();
+})();
+</script>
+</body>
+</html>

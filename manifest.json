@@ -1,0 +1,12 @@
+{
+  "name": "Däcklager",
+  "short_name": "Däcklager",
+  "lang": "sv",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f6f8",
+  "theme_color": "#17324d",
+  "description": "Enkel registrering och sökning av däckförvaring"
+}
